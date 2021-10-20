@@ -1,7 +1,6 @@
-from typing import Callable
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, Callable
 import numpy as np
 from joblib import Parallel, delayed
 
@@ -68,7 +67,7 @@ class CrossValidator:
 
             #Get inner train-test indexes
             inner_splits = [(idx_train[train], idx_train[test])
-                     for train, test in splitter.split(idx_train)]
+                            for train, test in splitter.split(idx_train)]
 
             #Save outer-inner splits
             splits.append((outer_split, inner_splits))
