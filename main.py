@@ -5,7 +5,6 @@ from models.linear_regression import LinearRegression
 
 from validators.cross_validator import CrossValidator
 
-
 #%%
 #Define loss function
 def loss_fn(pred, label):
@@ -28,6 +27,4 @@ cv = CrossValidator(n_outer=100, n_inner=40, n_workers=3,
                     verbose = True, randomize_seed = 0)
 
 #Cross validate
-(all_losses, gen_err_inner, idx_best, 
- loss_best_outer, gen_err_outer) \
-     = cv.cross_validate(X, y, models, loss_fn)
+result = cv.cross_validate(X, y, models, loss_fn)

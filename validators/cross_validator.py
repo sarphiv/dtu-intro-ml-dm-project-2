@@ -5,6 +5,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from models.model import Model
+from validators.validation_result import ValidationResult
 
 #List of indices
 IdxList = np.ndarray
@@ -102,19 +103,19 @@ class CrossValidator:
 
     def cross_validate(self, 
                        features: np.ndarray, labels: np.ndarray, 
-                       models: List[Model], loss_fn: LossFunc) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], Optional[float]]:
+                       models: List[Model], loss_fn: LossFunc) -> ValidationResult:
         """
-        Returns: 
+        Returns ValidationResult:
             When doing 2-layer cross validation:
-                Losses from inner test splits (n_outer*n_inner, n_model),
-                Generalization error of inner test splits (n_outer, n_model),
-                Index of optimal model in each outer split/fold (n_outer),
-                Losses of optimal models on outer test set (n_outer),
+                Losses from inner test folds (n_outer*n_inner, n_model),
+                Generalization error of inner folds inside an outer fold (n_outer, n_model),
+                Index of best model in each outer split/fold (n_outer),
+                Losses of best models on outer test set (n_outer),
                 Generalization error for model selection process (float)
             When doing 1-layer cross validation
-                Losses from inner test splits (1*n_inner, n_model),
-                Generalization error of inner test splits (1, n_model),
-                Index of optimal model in each outer split/fold (1) (one element float array),
+                Losses of each folds (1*n_inner, n_model),
+                Generalization error folds (1, n_model),
+                Index of best model (1) (one element float array),
         """
 
 
@@ -205,7 +206,7 @@ class CrossValidator:
         
         loss_gen_inner = (inner_test_fraction * losses).sum(axis = 1)
         
-        idx_optimal_model = loss_gen_inner.argmin(axis = 1)
+        idx_best_model = loss_gen_inner.argmin(axis = 1)
 
 
         #If verbose, print finished inner
@@ -216,7 +217,7 @@ class CrossValidator:
 
         #If one-layer cross-validation, done, return
         if self.n_outer == 0:
-            return inner_losses, loss_gen_inner, idx_optimal_model, None, None
+            return ValidationResult(inner_losses, loss_gen_inner, idx_best_model)
 
 
 
@@ -229,7 +230,7 @@ class CrossValidator:
         #Create tasks for outer folds/splits
         tasks = []
         for idx_outer, (outer, _) in enumerate(idx_splits):
-            idx_model = idx_optimal_model[idx_outer]
+            idx_model = idx_best_model[idx_outer]
             train, test = outer
 
             tasks.append(delayed(CrossValidator.__evaluate)(
@@ -256,10 +257,10 @@ class CrossValidator:
 
 
         #Create array to store generalization errors
-        loss_optimal_outer = np.empty(len(results), dtype=np.float)
+        loss_best_outer = np.empty(len(results), dtype=np.float)
         #Store losses in array
         for id, loss in results:
-            loss_optimal_outer[id] = loss
+            loss_best_outer[id] = loss
 
 
         #Get (n_outer) vector of fractions
@@ -269,7 +270,7 @@ class CrossValidator:
         )
         #Estimate generalization error for model selection process via
         # err_gen = sum(len(outer_i) / len(dataset) * outer_i_loss)
-        loss_gen_outer = (outer_test_fraction * loss_optimal_outer).sum()
+        loss_gen_outer = (outer_test_fraction * loss_best_outer).sum()
 
 
         #If verbose, print finished inner
@@ -278,5 +279,6 @@ class CrossValidator:
 
 
         #Return 2-layer cross-validation results
-        return inner_losses, loss_gen_inner, idx_optimal_model, loss_optimal_outer, loss_gen_outer
+        return ValidationResult(inner_losses, loss_gen_inner, idx_best_model, 
+                                loss_best_outer, loss_gen_outer)
 
