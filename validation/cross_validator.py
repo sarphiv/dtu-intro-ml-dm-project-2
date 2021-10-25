@@ -1,11 +1,11 @@
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
-from typing import List, Tuple, Union, Optional, Callable
+from typing import List, Tuple, Union, Callable
 import numpy as np
 from joblib import Parallel, delayed
 
-from models.model import Model
-from validators.validation_result import ValidationResult
+from validation.validation_model import ValidationModel
+from validation.validation_result import ValidationResult
 
 #List of indices
 IdxList = np.ndarray
@@ -82,7 +82,7 @@ class CrossValidator:
     def __evaluate(id: LId,
                    features: np.ndarray, labels: np.ndarray,
                    idx_train: np.ndarray, idx_test: np.ndarray,
-                   model: Model, loss_fn: LossFunc) -> Tuple[LId, float]:
+                   model: ValidationModel, loss_fn: LossFunc) -> Tuple[LId, float]:
         
         #Train model and get predictions
         predictions = model.train_predict(features[idx_train], labels[idx_train], 
@@ -103,7 +103,7 @@ class CrossValidator:
 
     def cross_validate(self, 
                        features: np.ndarray, labels: np.ndarray, 
-                       models: List[Model], loss_fn: LossFunc) -> ValidationResult:
+                       models: List[ValidationModel], loss_fn: LossFunc) -> ValidationResult:
         """
         Returns ValidationResult:
             When doing 2-layer cross validation:

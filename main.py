@@ -3,7 +3,7 @@ import numpy as np
 from models.mean_predictor import MeanPredictor
 from models.linear_regression import LinearRegression
 
-from validators.cross_validator import CrossValidator
+from validation.cross_validator import CrossValidator
 
 #%%
 #Define loss function
@@ -23,7 +23,7 @@ y = 4 * X[:, 0] + noise
 models = [MeanPredictor(), LinearRegression()]
 
 #Create cross validator
-cv = CrossValidator(n_outer=100, n_inner=40, n_workers=3, 
+cv = CrossValidator(n_outer=40, n_inner=100, n_workers=3, 
                     verbose = True, randomize_seed = 0)
 
 #Cross validate
