@@ -11,11 +11,11 @@ def loss_fn(pred, label):
     return np.mean((pred - label)**2)
 
 #Create features
-X = np.expand_dims(np.arange(100000), 1)
+X = np.arange(100000)
 
 #Create labels
 noise = np.random.normal(0, 2, len(X))
-y = 4 * X[:, 0] + noise
+y = 4 * X + noise
 
 
 #%%
@@ -23,7 +23,7 @@ y = 4 * X[:, 0] + noise
 models = [MeanPredictor(), LinearRegression()]
 
 #Create cross validator
-cv = CrossValidator(n_outer=40, n_inner=100, n_workers=3, 
+cv = CrossValidator(n_outer=10, n_inner=10, n_workers=3, 
                     verbose = True, randomize_seed = 0)
 
 #Cross validate
