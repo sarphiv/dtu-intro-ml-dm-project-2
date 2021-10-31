@@ -1,4 +1,5 @@
 #%%
+from models.nn_model import NNModel
 import numpy as np
 from models.mean_predictor import MeanPredictor
 from models.linear_regression import LinearRegression
@@ -28,3 +29,11 @@ cv = CrossValidator(n_outer=10, n_inner=10, n_workers=3,
 
 #Cross validate
 result = cv.cross_validate(X, y, models, loss_fn)
+
+#%%
+
+
+Random_nn_model = NNModel(3,5,1)
+
+
+# %%
