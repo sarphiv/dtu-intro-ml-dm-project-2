@@ -3,19 +3,25 @@ import torch.nn.functional as F
 
 
 class NNModel(nn.Module):
-    def __init__(self, n_hidden_layers, n_in, n_out) -> None:
+    def __init__(self, n_hidden_layers, n_in, n_out, purpose) -> None:
         super(NNModel, self).__init__()
         self.n_hidden_layers = n_hidden_layers
         #self.shape = shape
         self.n_in = n_in
         self.n_out = n_out
-    
-        act_func1 = lambda: nn.Tanh()
-        act_func2 = lambda: nn.Sigmoid()
+        self.purpose = purpose
+
+        if purpose == "Classification":
+            act_func1 = lambda: nn.Softmax()
+            act_func2 = lambda: nn.Softmax()
+        else:
+            act_func1 = lambda: F.sigmoid()
+            act_func2 = lambda: F.sigmoid()
 
         
         
-        self.nn_model_sequence = nn.Sequential(nn.Linear(n_in, n_hidden_layers), 
+        self.nn_model_sequence = nn.Sequential(
+            nn.Linear(n_in, n_hidden_layers), 
         act_func1(), 
         nn.Linear(n_hidden_layers, n_out), 
         act_func2())  
