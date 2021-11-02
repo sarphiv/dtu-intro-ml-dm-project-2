@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pickle
 from models.mean_predictor import MeanPredictor
 from models.linear_regression import LinearRegression
+from models.nn_valid import NeuralNetworkClass
 
 from validation.cross_validator import CrossValidator
 
@@ -38,11 +39,16 @@ def regression_test(models, name):
 
 #%%
 #Linear testing
-lambs = [1e-2, 1e-1, 1e0, 1e1, 4e1, 8e1, 1e2, 2e2, 3e2, 4e2, 8e2, 1e3, 1e4]
-lin_models = [LinearRegression(l) for l in lambs]
+# lambs = [1e-2, 1e-1, 1e0, 1e1, 4e1, 8e1, 1e2, 2e2, 3e2, 4e2, 8e2, 1e3, 1e4]
+# lin_models = [LinearRegression(l) for l in lambs]
 
-results = regression_test(lin_models, "linear")
+# results = regression_test(lin_models, "linear")
 
+#%%
+#Neural network testing
+nn_params = [(5, 0, "Triangle", "Regression"), (7, 0.1, "Triangle", "Regression")]
+nn_models = [NeuralNetworkClass(*p) for p in nn_params]
 
+results = regression_test(nn_models, "nn")
 #%%
 
