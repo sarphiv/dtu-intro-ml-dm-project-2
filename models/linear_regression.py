@@ -11,4 +11,4 @@ class LinearRegression(ValidationModel):
         m = Ridge(alpha=self.lamb, fit_intercept=True)
         m.fit(train_features, train_labels)
         
-        return m.predict(test_features, 1)
+        return m.predict(test_features)

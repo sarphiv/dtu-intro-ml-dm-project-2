@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 #Load dataset
-df = pd.read_excel(r'../data/loanapp.xls',header=None)
+df = pd.read_excel(r'./data/loanapp.xls',header=None)
 data = df.to_numpy()
 
 #Get shapes of data
@@ -151,7 +151,7 @@ def getData(exclude = ["white","black","hispanic","male","female"]):
         if(not failed):
             l = np.concatenate((l.T, [kIncodData[:,j]])).T
         
-    return l[1:]
+    return l[:, 1:]
 
 def getClassificationLabel(include = ["white","black","hispanic","male","female"]):
     l = np.empty([obs,1])
