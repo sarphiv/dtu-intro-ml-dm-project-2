@@ -1,5 +1,5 @@
 from validation.validation_model import ValidationModel
-from nn_model import NNModel  
+from models.nn_model import NNModel  
 import torch.nn as nn
 import torch
 from torch import Tensor
@@ -20,25 +20,33 @@ class NeuralNetworkClass(ValidationModel):
     
     
     def train_predict(self, train_features, train_labels, test_features):
-        
+
         #n_hidden_layers, n_in, n_out, purpose, shape
+        train_feat_t = Tensor(train_features)
         
-        model = NNModel(self.n_hidden_layers, self.n_in, self.n_out, self.purpose, self.shape)
+        model = NNModel(self.n_hidden_layers,
+                        train_features.shape[1], 
+                        test_features.shape[1] if self.purpose == "Classification" else 1, 
+                        self.purpose, self.shape)
         
         if self.purpose == "Classification":
             loss_func = nn.CrossEntropyLoss()
         else: 
-            loss_func = nn.MSELoss()
+            loss_func = nn.MSELoss(reduction='sum')
         
         optimizer = torch.optim.SGD(model.parameters(), lr = self.reg_factor)
         
         epocs = 50
         
+        # Implement data loader
+        # Remember drop last
         for epoc in range(epocs):
             #Forward propagation
-            y_predict = model(train_features)
-            
-        loss = loss_func(y_predict, train_labels)
+            #print(epoc)
+            y_predict = model(train_feat_t)
+        
+        loss = loss_func(y_predict.squeeze(), Tensor(train_labels))
+        
         print(f"Epoc: {epoc}, Loss: {loss.item()}")
             
         optimizer.zero_grad()
@@ -49,7 +57,7 @@ class NeuralNetworkClass(ValidationModel):
         optimizer.step()
         
         #Wrapping data in a tensor 
-        row = Tensor([test_features]).float()
+        row = Tensor(test_features)
     
         #Throwing it into our model
         yhat = model(row)

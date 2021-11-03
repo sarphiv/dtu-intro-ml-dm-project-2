@@ -13,14 +13,14 @@ class NNModel(nn.Module):
         self.shape = shape
 
         if purpose == "Classification":
-            act_func1 = lambda: F.sigmoid()
+            act_func1 = lambda: nn.Sigmoid()
             act_func2 = lambda: nn.Softmax()
         else: # Regression
-            act_func1 = lambda: F.sigmoid()
-            act_func2 = lambda: F.sigmoid()
-            
+            act_func1 = lambda: nn.Sigmoid()
+            act_func2 = lambda: nn.Sigmoid()
+        print("hej")
         if shape == "Triangle":
-            layers = [nn.Linear(self.n_in,self.n_out+self.n_hidden_layers)]
+            layers = [nn.Linear(self.n_in,self.n_out+self.n_hidden_layers),act_func1()]
             if(self.n_hidden_layers > 1):
                 for i in range(self.n_out+1,self.n_hidden_layers+self.n_out)[::-1]:
                     nn1 = nn.Linear(i+1,i)
@@ -29,9 +29,9 @@ class NNModel(nn.Module):
                     layers.append(nn2)
                     
             layers.append(nn.Linear(self.n_out+1,self.n_out))
-            layers.append(act_func2())
+            # layers.append(act_func2())
         if shape == "Rectangle":
-            layers = [nn.Linear(self.n_in,self.n_out+self.n_hidden_layers-1)]
+            layers = [nn.Linear(self.n_in,self.n_out+self.n_hidden_layers-1),act_func1()]
             if(self.n_hidden_layers > 1):
                 for i in range(self.n_hidden_layers-1):
                     nn1 = nn.Linear(self.n_out+self.n_hidden_layers-1,self.n_out+self.n_hidden_layers-1)
