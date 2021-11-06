@@ -19,7 +19,7 @@ headers = ["occ", "loanamt", "action", "msa", "suffolk", "appinc", "typur", "uni
 "reject", "approve", "mortno", "mortperf", "mortlat1", "mortlat2", "chist", "multi",
 "loanprc", "thick", "white"]
 
-print("Code finished!")
+# print("Code finished!")
 
 #%% ---- DATACLEANING --- PART 1
 # Find outliers and remove if nessesary
@@ -89,7 +89,7 @@ for i, obs_feat in enumerate(cleanData.T):
 
     cleanData[arg_outlier, i] = mean_non_outlier
 
-print(outliers, "ouliers found and replaced with mean")
+# print(outliers, "ouliers found and replaced with mean")
 
 kIncodData = np.copy(cleanData)
 kIncodHeader = np.copy(headers).tolist()
@@ -138,7 +138,7 @@ kIncodHeader[kIncodHeader.index("male[0]")] = "female"
 kIncodHeader[kIncodHeader.index("male[1]")] = "male"
 
 
-def getData(exclude = ["white","black","hispanic","male","female"]):
+def getData(exclude = []):
     
     l = np.empty([obs,1])
 
@@ -153,7 +153,13 @@ def getData(exclude = ["white","black","hispanic","male","female"]):
         
     return l[:, 1:]
 
-def getClassificationLabel(include = ["white","black","hispanic","male","female"]):
+def getClassificationFeatures(exclude = ["white","black","hispanic","male","female"]):
+    return getData(exclude)
+
+def getRegressionFeatures(exclude = ["price", "apr", "loanprc"]):
+    return getData(exclude)
+
+def getClassificationLabels(include = ["white","black","hispanic","male","female"]):
     l = np.empty([obs,1])
 
     for j in range(len(kIncodHeader)):
@@ -167,7 +173,7 @@ def getClassificationLabel(include = ["white","black","hispanic","male","female"
         
     return l[1:]
     
-def getRegressionLabel():
+def getRegressionLabels():
     price_col = kIncodData[:, kIncodHeader.index("price")]
     apr_col =   kIncodData[:, kIncodHeader.index("apr")]
     value_rat = (price_col - apr_col)/apr_col
