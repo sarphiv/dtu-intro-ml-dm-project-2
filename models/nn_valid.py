@@ -1,114 +1,130 @@
 from validation.validation_model import ValidationModel
 from models.nn_model import NNModel  
+import numpy as np
 import torch.nn as nn
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader , TensorDataset
+from sklearn.model_selection import StratifiedKFold
+
 
 class NeuralNetworkClass(ValidationModel):
-    def __init__(self, n_hidden_layers, reg_factor, shape, purpose) -> None:
+    def __init__(self, n_hidden_layers, purpose, bagData = False) -> None:
         super().__init__()
+        
+        if purpose not in ["regression", "classification"]:
+            raise ValueError("Unsupported purpose")
+
+
 
         #Number of hidden layers
         self.n_hidden_layers = n_hidden_layers
-        #Regularization factor (lambda)
-        self.reg_factor = reg_factor
         #Shape of neural network ("Square", "Triangle")
-        self.shape = shape
         self.purpose = purpose
+        self.epochs = 500
+        self.bagData = bagData
+
+
+    def train_predict(self, train_features, train_labels, test_features):
+        classifying = self.purpose == "classification"
         
-    
-    
-    
-    def train_predict(self, train_features, train_labels, test_features, epochs):
+        
         
         #n_hidden_layers, n_in, n_out, purpose, shape
         feat_t = Tensor(train_features)
         lab_t = Tensor(train_labels)
-        self.epochs = epochs
         
         dataset = TensorDataset(feat_t, lab_t)
-        data_batcher = DataLoader(dataset , batch_size = 72, shuffle=True)
+        if classifying and self.bagData: 
+            data_batcher = DataLoader(
+                dataset,
+                batch_sampler=StratifiedBatchSampler(
+                    lab_t.argmax(dim=1), 
+                    batch_size=72, 
+                    shuffle=True
+                )
+            )
+        else:
+            data_batcher = DataLoader(dataset, batch_size = 72, shuffle=True)
         
-        model = NNModel(self.n_hidden_layers,
-                        feat_t.shape[1], 
-                        lab_t.shape[1] if self.purpose == "Classification" else 1, 
-                        self.purpose, self.shape)
         
-        if self.purpose == "Classification":
+        model = NNModel(self.n_hidden_layers, 
+                        feat_t.shape[1],
+                        lab_t.shape[1] if classifying else 1, 
+                        self.purpose)
+        
+        if classifying:
             loss_func = nn.CrossEntropyLoss()
         else: 
             loss_func = nn.MSELoss()
-        
-        
-        # Use the optim package to define an Optimizer that will update the weights of
-        # the model for us. Here we will use RMSprop; the optim package contains many other
-        # optimization algorithms. The first argument to the RMSprop constructor tells the
-        # optimizer which Tensors it should update.
+
+
         learning_rate = 1e-3
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         
         
-        # Implement data loader
-        # Remember drop last
-        for epoch in range(epochs):
+        for epoch in range(self.epochs):
             for x, y in iter(data_batcher):
                 # Forward pass: compute predicted y by passing x to the model.
                 y_pred = model(x)
 
-                # Compute and print loss.
-                loss = loss_func(y_pred.squeeze(), y)
+                if classifying:
+                    loss = loss_func(y_pred, y.argmax(dim=1))
+                else:
+                    loss = loss_func(y_pred.squeeze(), y)
                 
-
-                # Before the backward pass, use the optimizer object to zero all of the
-                # gradients for the variables it will update (which are the learnable
-                # weights of the model). This is because by default, gradients are
-                # accumulated in buffers( i.e, not overwritten) whenever .backward()
-                # is called. Checkout docs of torch.autograd.backward for more details.
                 optimizer.zero_grad()
-
-                # Backward pass: compute gradient of the loss with respect to model
-                # parameters
                 loss.backward()
-
-                # Calling the step function on an Optimizer makes an update to its
-                # parameters
                 optimizer.step()
-    
-            if epoch % 10 == 0:
-                print(epoch, loss.item())
 
-        print("You're doing great!")
-            
-            
-            #Forward propagation
-            #print(epoc)
-            #y_predict = model(train_feat_t)
-        
-            #loss = loss_func(y_predict.squeeze(), Tensor(train_labels))
-
-            #Backward propagation
-            #optimizer.zero_grad()
-            #loss.backward()
-            #optimizer.step()
-        
-        #print(f"Epoc: {epoc}, Loss: {loss.item()}")
-            
-    
 
 
         
         #Wrapping data in a tensor 
-        row = Tensor(test_features)
-    
+        feat_test= Tensor(test_features)
+        
         #Throwing it into our model
-        yhat = model(row)
+        test_pred = model(feat_test)
 
         #Transforming it into numpy arrays
-        yhat = yhat.detach().numpy().squeeze()
-        
+        test_pred = test_pred.detach().numpy().squeeze()
+
+
+        #If classifying, one-hot-encode predictions
+        if classifying:
+            y_pred = np.zeros_like(test_pred)
+            y_pred_idx = np.argmax(test_pred, axis=1)
+            
+            y_pred[np.arange(len(test_pred)), y_pred_idx] = 1
+            
+            test_pred = y_pred
 
 
         #Predict
         #Discard model
-        return yhat
+        return test_pred
+
+
+class StratifiedBatchSampler:
+    """Stratified batch sampling
+    Provides equal representation of target classes in each batch
+    Author: Reuben Feinman
+    """
+    def __init__(self, y, batch_size, shuffle=True):
+        if torch.is_tensor(y):
+            y = y.numpy()
+        assert len(y.shape) == 1, 'label array must be 1D'
+        n_batches = int(len(y) / batch_size)
+        self.skf = StratifiedKFold(n_splits=n_batches, shuffle=shuffle)
+        self.X = torch.randn(len(y),1).numpy()
+        self.y = y
+        self.shuffle = shuffle
+
+    def __iter__(self):
+        if self.shuffle:
+            self.skf.random_state = torch.randint(0,int(1e8),size=()).item()
+        for train_idx, test_idx in self.skf.split(self.X, self.y):
+            yield test_idx
+
+    def __len__(self):
+        return len(self.y)

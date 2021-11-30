@@ -1,6 +1,7 @@
 #%% Import and setput
 import pandas as pd
 import numpy as np
+from sklearn.decomposition import PCA
 
 #Load dataset
 df = pd.read_excel(r'./data/loanapp.xls',header=None)
@@ -127,20 +128,31 @@ def kIncode(idx, head):
 kIncodData[np.argmax(kIncodData[:,kIncodHeader.index("apr")]),kIncodHeader.index("apr")] = np.mean(kIncodData[:,kIncodHeader.index("apr")])
 
 # All elements that needs to be one of k incoded
-elementsToKIncode = ["occ", "action","typur","prop","male"]
+elementsToKIncode = ["occ", "action","typur","prop"]#,"male"]
 
 # One of k incode all the above attributes
 for e in elementsToKIncode:
     kIncode(kIncodHeader.index(e), e)
 
 # Rename male[0] and male[1] ind kIncodHeader to male and female
-kIncodHeader[kIncodHeader.index("male[0]")] = "female"
-kIncodHeader[kIncodHeader.index("male[1]")] = "male"
+# kIncodHeader[kIncodHeader.index("male[0]")] = "female"
+# kIncodHeader[kIncodHeader.index("male[1]")] = "male"
+kIncodHeader[kIncodHeader.index("male")] = "sex" #1: Male, #0: Female
+
+def doPCA(X, n_pc):
+    Xhat = (X - np.mean(X, axis=0)) / (np.std(X, axis=0) + 1e-8)
+    pca = PCA()
+    pca.fit(Xhat)
+
+    pc_best = pca.components_[:n_pc]
+
+    return Xhat  @ pc_best.T
 
 
-def getData(exclude = []):
-    
+def getData(exclude = [], standardize = False, n_pc = None, return_headers = False):
+    X = kIncodData
     l = np.empty([obs,1])
+    headers = []
 
     for j in range(len(kIncodHeader)):
         failed = False
@@ -149,18 +161,52 @@ def getData(exclude = []):
                 failed = True
                 break
         if(not failed):
-            l = np.concatenate((l.T, [kIncodData[:,j]])).T
-        
-    return l[:, 1:]
+            l = np.concatenate((l.T, [X[:,j]])).T
+            headers.append(kIncodHeader[j])
 
-def getClassificationFeatures(exclude = ["white","black","hispanic","male","female"]):
-    return getData(exclude)
+    X = l[:, 1:]
 
-def getRegressionFeatures(exclude = ["price", "apr", "loanprc"]):
-    return getData(exclude)
 
-def getClassificationLabels(include = ["white","black","hispanic","male","female"]):
+    if n_pc is not None: 
+        X = doPCA(X, n_pc)
+
+    if standardize: 
+        X = (X - np.mean(X, axis=0)) / (np.std(X, axis=0) + 1e-8)
+    
+    
+    if return_headers:
+        return X, np.array(headers)
+    else:
+        return X
+
+
+def getClassificationFeatures(standardize = False, n_pc = None):
+    X = getData(
+        exclude=["white", "black", "hispanic"], 
+        standardize=standardize, 
+        n_pc = n_pc
+    )
+
+    return X
+
+
+def getRegressionFeatures(standardize = False, n_pc = None, return_headers = False):
+    return getData(
+        exclude=["loanamt", "apr", "price", "loanprc"], 
+        standardize=standardize, 
+        n_pc = n_pc,
+        return_headers = return_headers
+    )
+    
+    # X = getData(exclude=["price","apr"], standardize=standardize, n_pc = n_pc)
+    # X = getData(exclude=[], standardize=standardize, n_pc = n_pc)
+
+
+def getClassificationLabels():
     l = np.empty([obs,1])
+    #NOTE: Do not change, logic assumes these hard-coded values
+    include = ["white", "black", "hispanic"]
+    header_order = []
 
     for j in range(len(kIncodHeader)):
         failed = True
@@ -170,11 +216,33 @@ def getClassificationLabels(include = ["white","black","hispanic","male","female
                 break
         if(not failed):
             l = np.concatenate((l.T, [kIncodData[:,j]])).T
-        
-    return l[1:]
+            #Save header of appended column
+            header_order.append(kIncodHeader[j])
+            
     
-def getRegressionLabels():
-    price_col = kIncodData[:, kIncodHeader.index("price")]
-    apr_col =   kIncodData[:, kIncodHeader.index("apr")]
-    value_rat = (price_col - apr_col)/apr_col
-    return value_rat
+    #Discard first column
+    l = l[:, 1:]
+    
+    #Ensure correct order as required in parameters and ensure correct type
+    l = l[:, [header_order.index(h) for h in include]].astype(int)
+
+
+    return l
+
+
+def getRegressionLabels(standardize = False):
+    loanamt = kIncodData[:, kIncodHeader.index("loanamt")]
+    if standardize:
+        return (loanamt - loanamt.mean()) / (loanamt.std() + 1e-8)
+    else:
+        return loanamt
+    # price_col = kIncodData[:, kIncodHeader.index("price")]
+    # apr_col =   kIncodData[:, kIncodHeader.index("apr")]
+    # value_rat = (price_col - apr_col)/apr_col
+
+    # if standardize:
+    #     return (value_rat - value_rat.mean()) / value_rat.std()
+    # else:
+    #     return value_rat
+
+

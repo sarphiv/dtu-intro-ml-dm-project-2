@@ -3,53 +3,67 @@ import torch.nn.functional as F
 
 
 class NNModel(nn.Module):
-    def __init__(self, n_hidden_layers, n_in, n_out, purpose, shape) -> None:
+    def __init__(self, n_nodes_per_layer, n_in, n_out, purpose) -> None:
         super(NNModel, self).__init__()
-        self.n_hidden_layers = n_hidden_layers
-
+        
         self.n_in = n_in
         self.n_out = n_out
         self.purpose = purpose
-        self.shape = shape
+        self.n_nodes_per_layer = n_nodes_per_layer
 
-        if purpose == "Classification":
-            act_func1 = lambda: nn.Sigmoid()
-            act_func2 = lambda: nn.Softmax()
-        else: # Regression
-            act_func1 = lambda: nn.Tanh()
-            act_func2 = lambda: nn.Tanh()
-        print("hej")
-        if shape == "Triangle":
-            # layers = [nn.Linear(self.n_in,self.n_out+self.n_hidden_layers),act_func1()]
-            layers = [nn.Linear(self.n_in,self.n_out+self.n_hidden_layers)]
-            if(self.n_hidden_layers > 1):
-                for i in range(self.n_out+1,self.n_hidden_layers+self.n_out)[::-1]:
-                    nn1 = nn.Linear(i+1,i)
-                    layers.append(nn1)
-                    # layers.append(nn2)
-                    
-            layers.append(nn.Linear(self.n_out+1,self.n_out))
+        if n_nodes_per_layer < 2:
+            raise ValueError("Number of hidden layers must be above 1")
 
-        if shape == "Rectangle":
-            layers = [nn.Linear(self.n_in,self.n_out+self.n_hidden_layers-1),act_func1()]
-            if(self.n_hidden_layers > 1):
-                for i in range(self.n_hidden_layers-1):
-                    nn1 = nn.Linear(self.n_out+self.n_hidden_layers-1,self.n_out+self.n_hidden_layers-1)
-                    nn2 = act_func1()
-                    layers.append(nn1)
-                    layers.append(nn2)
-            layers.append(nn.Linear(self.n_out+self.n_hidden_layers-1,self.n_out))
-            # layers.append(act_func2())
 
-        self.nn_model_sequence = nn.Sequential(*layers)
-    
-    
-    
-    def forward(self, x):
+
+        act_inner_fn = lambda: nn.Tanh()
+
+        layers = [nn.Linear(self.n_in, n_nodes_per_layer),
+                act_inner_fn(),
+                nn.Linear(n_nodes_per_layer,n_nodes_per_layer),
+                act_inner_fn(),
+                nn.Linear(n_nodes_per_layer,n_nodes_per_layer),
+                act_inner_fn(),
+                nn.Linear(n_nodes_per_layer,self.n_out)]
+
+        # if shape == "triangle":
+        #     #Add first input and hidden layer with activation function
+        #     layers = [nn.Linear(self.n_in, self.n_out + self.n_hidden_layers - 1), act_inner_fn()]
+        #     #Backtracking through the model, adding hidden layers from the output. Thus ensuring 
+        #     #that it gets the shape desired
+        #     for i in range(self.n_out + 1, self.n_out + self.n_hidden_layers - 1)[::-1]:
+        #         #Creating the layers and appending them to our network as well as our activation functions
+        #         layers.append(nn.Linear(i + 1, i))
+        #         layers.append(act_inner_fn())
             
+        #     #Add last layer without activation function
+        #     layers.append(nn.Linear(self.n_out+1,self.n_out))
+
+
+        # if shape == "rectangle":
+        #     #Define the height/amount of neurons in the hidden layers
+        #     height = self.n_out + self.n_hidden_layers
+        #     #Add first input and hidden layer with activation function
+        #     layers = [nn.Linear(self.n_in, height), act_inner_fn()]
+
+        #     #Going through the network forwards this adds layers to add hidden layers with a consitent 
+        #     # amount of neurons in each to give the hidden layers a rectangular like shape
+        #     for i in range(n_hidden_layers - 2):
+        #         layers.append(nn.Linear(height, height))
+        #         layers.append(act_inner_fn())
+
+        #     #Adding one last hidden layer with the output layer last 
+        #     layers.append(nn.Linear(height, self.n_out))
+            
+            
+        #If classifying, add Softmax to get probabilities
+        if purpose == "classification":
+            layers.append(nn.Softmax(dim=1))
+
+
+        #Create model
+        self.nn_model_sequence = nn.Sequential(*layers)
+
+
+    def forward(self, x):
         return self.nn_model_sequence(x)
-        
-        
-        
-        
-        
